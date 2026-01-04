@@ -1,0 +1,421 @@
+SARP Database – UCP‑Oriented Documentation (Read‑Only)
+1. Scope & Conventions
+This document describes the parts of the SARP database that are relevant to a web‑based User Control Panel (UCP), assuming:
+
+The UCP is read‑only for now (no updates from the panel).
+The UCP is focused on account overviews, sanctions/history, assets, and activity/logs.
+The main join key is the numeric player ID from the players table.
+1.1 Core Conventions
+Primary user key: players.ID (int).
+User references in other tables commonly use:
+UserID, userID, PlayerID, pID, TicketPID, CrimePID, OwnerID (int), contact_sql.
+Name‑based references (less reliable for joins, mainly for display):
+Name, User, username, PlayerName.
+Time / date fields:
+Mix of Date (string or datetime), specific date components (BanDay, BanMonth, BanYear), and Unix timestamps (LogUnix).
+Schema style:
+No formal foreign keys; relationships are implicit by naming.
+Column naming is mixed case (UserID, BanReason, PayDayHad, etc.).
+2. Core User Table: players
+2.1 Purpose
+players is the central account/character table. It stores:
+
+Identity (name, account, country).
+Authentication and security.
+Roles and permissions.
+Sanctions flags.
+Economy (money, bank).
+Assets references (houses, vehicles, etc.).
+Preferences, toggles, and various cooldown timers.
+Primary key: ID (int).
+
+This should be the starting point for any UCP page showing “Account Overview”.
+
+2.2 Key Fields for UCP
+Below are the most relevant groups of fields to surface in a UCP (read‑only).
+
+Identity & Basic Info
+ID – internal numeric ID (primary key).
+Name – in‑game character name.
+GameAccount – account name (if present/separate from Name).
+Country – player country (if populated).
+Registered – registration status or date (depending on type).
+LastLogin – last login datetime/string.
+ConnectedTime – total connection time (minutes).
+UCP usage:
+Show on Account Summary page as basic profile data.
+
+Authentication & Security (Sensitive – Display Carefully)
+Password, Salt, NewPassword, NewSalt – password hashes/salts.
+SecurityKey – security token / secret.
+Serial – hardware/installation identifier.
+IP – last known IP address.
+HasDoubleStepSecurity – boolean; whether 2FA/double‑step security is enabled.
+DoubleStepPassword – 2FA/double‑step token (sensitive).
+UCP usage:
+For a read‑only UCP, do not display raw values. At most, expose boolean/derived indicators, e.g.:
+
+“2‑Step Security: Enabled/Disabled” (from HasDoubleStepSecurity).
+“Security features enabled” (without showing secrets).
+Roles & Permissions
+Admin / staff levels:
+AdminLvl / AdminLevel, HelperLevel, DevLevel, TesterLevel.
+Special moderator flags:
+GangModd, EventModd, ComplaintModd, ShopMod, BizMod, FactionMod, GangDirector, FactionDirector, Mapper.
+Donor/VIP:
+DonateRank, DonatedRank, DonatedGroup, VIPJoinDate, VIPExpDate.
+UCP usage:
+
+On Account Summary or Roles & Permissions tab, show:
+Admin rank and helper/dev/tester flags.
+VIP/donator rank and validity period (VIP join/expiry).
+Factions, Groups, and Ranks
+Faction membership:
+Leader, Member, FMember, Rank, Division, possibly FakeFaction, FakeRank.
+Group/organization:
+Group, GroupRank, GroupNick, pGroupNick, Recruiter.
+UCP usage:
+
+On a Factions & Groups section:
+Display current faction ID, rank, division.
+Display current group ID/rank/nicknames.
+These may need mapping tables or hard‑coded mappings on the UCP side.
+Sanctions & Status Flags (Per‑Account)
+Bans & disables:
+Band, PermBand, BanReason, BanDay, BanMonth, BanYear, BanTime, Disabled.
+Prison/jail:
+AdminJailed, PrisonReason, PrisonedBy.
+Warnings/mutes:
+Warnings, NewbieMuted, NewbieMutedTime, NewbieWarns, AdMuted, BugMuted, Gag, ReportMuted.
+Other flags:
+CBand (possibly chat ban), HidingStatus.
+UCP usage:
+
+On a Sanctions or Account Status section:
+Show if currently banned/perma‑banned.
+Last/active ban reason + ban expiry date (if applicable).
+Active jail/prison data.
+Counts of warnings and any active mutes.
+Economy & Stats
+Financial:
+Money, Bank, Paycheck, PayDay, PayDayHad, HeadValue.
+Materials/resources:
+Products, Materials, Seeds.
+Misc stats and times:
+Multiple cooldowns: CarTime, DrugsTime, RobTime, PlantTime, RepairTime, etc.
+UCP usage:
+
+On an Economy & Stats section:
+Show current cash and bank balance.
+Optionally show payday progress and key cooldown timers in a readable form.
+Assets References
+Houses / businesses:
+pHouseID – owned house ID.
+BizKey – business ID/key.
+Vehicles:
+CKey1–CKey4, lastCarID, maxcarslots.
+UCP usage:
+
+Use these IDs/keys to join into assets tables such as houses, playervehicles, etc., and show “Owned Properties”, “Owned Vehicles”.
+Preferences & Toggles
+Chat/UI toggles:
+TogNewbie, TogAutoChat.
+Misc:
+Origin, HidingStatus, avatar_image_url.
+UCP usage:
+
+Show non‑sensitive preferences such as:
+Newbie chat visibility, auto chat preferences.
+Avatar/profile image (from avatar_image_url).
+3. Sanctions & History Tables
+These tables provide historical and structured sanctions information per user. They are ideal sources for read‑only sanctions/audit panels.
+
+3.1 banlist
+Purpose: Structured ban records, generally newer or primary ban log.
+
+Important fields:
+
+ID – ban record ID.
+userID – numeric link to players.ID (when present).
+Name – player name at time of ban.
+Key_, IP, Serial – identifiers used to enforce bans.
+Reason – ban reason text.
+BannedBy – staff/admin who issued the ban.
+Date – when ban was issued.
+Expires – expiry datetime, or NULL/special value for perma‑bans.
+Banned – active flag.
+UCP usage:
+
+Sanctions History tab:
+List ban records for the current user (by userID and/or Name).
+Show reason, banned by, date, and status (active/expired).
+3.2 bans (legacy/simple bans)
+Purpose: Older or simpler bans table, likely IP/name based.
+
+Important fields:
+
+username – player name.
+banner – admin who banned.
+reason – reason for ban.
+ip, Serial – technical identifiers.
+UCP usage:
+
+Supplementary Legacy Bans list, filtered by username or matching Name.
+3.3 warnings
+Purpose: Strike‑based admin warnings.
+
+Important fields:
+
+WarnID – warning record ID.
+PlayerID – link to players.ID.
+AdminName – admin who issued the warning.
+Date – issue date.
+Reason – warning reason.
+Active – whether warning is still active.
+UCP usage:
+
+Under Sanctions History:
+Show list of warnings: date, reason, admin, active/expired.
+3.4 crimes and newcrimes
+crimes (legacy)
+
+ID, Name (player name), Officer, Crime, Active.
+newcrimes (preferred/newer)
+
+CrimeID – crime record ID.
+CrimePID – player ID → players.ID.
+CrimeIssuer – issuer ID (admin/officer).
+CrimeReason, CrimeType.
+CrimeEnabled – active flag.
+RealName – possibly real account name or issuer name.
+UCP usage:
+
+Under Criminal Record / Offences:
+Show all newcrimes for CrimePID = players.ID.
+Include reason, type, issuer, date (if present), status.
+3.5 tickets
+Purpose: Monetary fines given to players.
+
+Important fields:
+
+TicketID – ticket record ID.
+TicketPID – player ID → players.ID.
+TicketIssuer – issuer ID.
+IssuerName – issuer name.
+TicketReason.
+Amount.
+Active.
+Date.
+UCP usage:
+
+Under Tickets & Fines:
+Show list of tickets: reason, amount, issuer, date, status.
+3.6 prisons
+Purpose: Records of prison/jail sentences.
+
+Important fields:
+
+ID.
+User – player name.
+Admin.
+Reason.
+Time – duration or sentence length.
+Date.
+UCP usage:
+
+Under Jail/Prison History:
+Show historical prison entries for this name; primarily informational.
+3.7 activitylog
+Purpose: Simple per‑day activity tracking.
+
+Important fields:
+
+ID.
+UserID – link to players.ID.
+Minutes – minutes played.
+Date.
+UCP usage:
+
+On an Activity tab:
+Show recent days with minutes played (graph or table).
+4. Assets & Ownership
+These tables support “Owned Items” sections (properties, vehicles, safes, etc.) in the UCP.
+
+4.1 houses
+Purpose: Player‑owned houses/properties.
+
+Important fields:
+
+HouseID – property ID.
+OwnerID – owner identifier (int or string; may correspond to players.ID or Name).
+Value, Level – house value and required level.
+Interior/exterior position fields (coordinates).
+Locked, Alarm, AlarmStatus.
+Stored items:
+Cash, materials, drugs, guns, ammo (various fields).
+UCP usage:
+
+Properties tab:
+Show houses where OwnerID matches the current player (ID or name).
+Display value, locked/alarm status, and a summary of stored items.
+4.2 playervehicles
+Purpose: Player‑owned vehicles.
+
+Important fields:
+
+ID – vehicle instance ID.
+pID – owner ID → players.ID.
+model – vehicle model ID.
+Position fields (spawn location).
+plate – license plate.
+insurance – insurance level/flag.
+locked – locked status.
+gas – fuel level.
+Storage:
+Pot, Crack, Armor, Gun1, Gun2, etc.
+UCP usage:
+
+Under Vehicles:
+List all playervehicles with pID = players.ID.
+Show model, plate, lock/insurance status, and key stats (e.g., fuel).
+4.3 safes
+Purpose: Personal or property safes.
+
+Important fields:
+
+safeid.
+OwnerID – likely players.ID or property ID.
+Location fields.
+Stored values:
+cash, mats, meth, cocaine, cannabis.
+weapon0–weapon9.
+UCP usage:
+
+Under Safes & Storage:
+Show each safe owned by the player, with summarized contents (no precise weapon IDs if that is too detailed, depending on design).
+4.4 furniture
+Purpose: House furniture objects.
+
+Important fields:
+
+ID.
+HouseID – link to houses.HouseID.
+Model and placement fields.
+UCP usage:
+
+Optional: in Property Details, show furniture count or a list.
+4.5 hotels and hotelrooms
+hotels
+
+ID – hotel entity ID.
+OwnerID – owner (player or group).
+Name – hotel name.
+hotelrooms
+
+ID – room ID.
+HotelID – link to hotels.ID.
+OwnerID – occupant/owner.
+Room location fields.
+UCP usage:
+
+Under Properties or Accommodations:
+Show hotel rooms where OwnerID matches the current user.
+5. Contacts, Names & Misc Logs
+5.1 phonecontacts
+Purpose: Player phone contact list.
+
+Important fields:
+
+ID.
+contact_sql – owner ID → players.ID.
+contact_number.
+contact_name.
+UCP usage:
+
+Optional Phonebook tab:
+List all contacts for contact_sql = players.ID.
+5.2 namechanges
+Purpose: Audit trail of approved name changes.
+
+Important fields:
+
+ID.
+OldName, NewName.
+pID – player ID → players.ID.
+ApprovedBy, PIDAdmin.
+RealName.
+Date.
+UCP usage:
+
+Under Name History:
+Show previous names and when/who approved them.
+5.3 weaponslog
+Purpose: Log of weapons given/taken.
+
+Important fields:
+
+ID.
+Name – player name.
+GivenBy.
+Date.
+Taken – flag if removed.
+UCP usage:
+
+Optional Weapons History:
+Read‑only list; join by name.
+5.4 paylog
+Purpose: Text log of payments and financial events.
+
+Important fields:
+
+ID.
+Date.
+Info – free‑form description (usually includes names, amounts, maybe IPs).
+UCP usage:
+
+Under Financial Log:
+Filter Info by player name and show relevant entries.
+5.5 familysafelogs
+Purpose: Logs of family/group safe transactions.
+
+Important fields:
+
+ID.
+FamilyID.
+PlayerName or ID.
+Action (withdraw/deposit).
+Amount.
+Date.
+UCP usage:
+
+For players in a family/group:
+Show their own actions and possibly their family’s safe history.
+5.6 gamefeed and version
+gamefeed: server‑wide notifications with Text, Color, Date.
+version: simple changelog with developer, text.
+UCP usage:
+
+Optional News / Changelog section:
+Render gamefeed entries and/or version records.
+6. Global Economy & Settings
+6.1 stuff
+Purpose: Global configuration for prices, jackpots, taxes, and some anticheat/meta info.
+
+Important fields (indicative):
+
+Jackpot, Tax.
+Prices for materials, drugs, seeds, etc.
+version string and other misc server settings.
+UCP usage:
+
+On Economy Overview:
+Show current global prices and tax/jackpot where useful to players (read‑only).
+7. Relationship Summary for UCP
+When building UCP queries, typical joins/lookups will be:
+
+From logged‑in account → players by ID or Name.
+players.ID → related tables:
+banlist.userID, warnings.PlayerID, newcrimes.CrimePID, tickets.TicketPID, activitylog.UserID, playervehicles.pID, safes.OwnerID, hotelrooms.OwnerID, phonecontacts.contact_sql, namechanges.pID.
+Name‑based lookups where IDs are missing:
+bans.username, crimes.Name, prisons.User, weaponslog.Name, older logs.
+For now, this documentation is read‑only focused. If you later want, I can extend it with an “editable fields” section that explicitly lists which columns are safe to expose for modification via the UCP and which should remain internal only.
