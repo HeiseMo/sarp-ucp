@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ViewState } from './types';
+import { ViewState, User, Property } from './types';
 import { Login } from './components/Login';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -7,30 +7,84 @@ import { Leaderboard } from './components/Leaderboard';
 import { FactionPanel } from './components/FactionPanel';
 import { CommunityPanel } from './components/CommunityPanel';
 import { AdminPanel } from './components/AdminPanel';
-import { MOCK_USER, MOCK_PROPERTIES, MOCK_LEADERBOARD, MOCK_FACTION, MOCK_TICKETS, MOCK_SERVER_LOGS, MOCK_ALL_PLAYERS } from './services/mockData';
+import { MOCK_LEADERBOARD, MOCK_FACTION, MOCK_TICKETS, MOCK_SERVER_LOGS, MOCK_ALL_PLAYERS } from './services/mockData';
+import { auth, assets } from './services/api';
 import { Menu } from 'lucide-react';
 
 export default function App() {
   const [view, setView] = useState<ViewState>(ViewState.LOGIN);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
 
-  // Fake initial load
+  // Check auth on load
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    const checkAuth = async () => {
+      try {
+        const data = await auth.me();
+        if (data.user) {
+          setUser(mapApiUserToUiUser(data.user));
+          setView(ViewState.DASHBOARD);
+
+          try {
+            const assetsData = await assets.list();
+            setProperties(Array.isArray(assetsData.properties) ? assetsData.properties : []);
+          } catch (e) {
+            console.error('Failed to load assets', e);
+            setProperties([]);
+          }
+        }
+      } catch (error) {
+        // Not logged in, stay on login screen
+        console.log('Not logged in');
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = async (apiUser: any) => {
+    setUser(mapApiUserToUiUser(apiUser));
     setView(ViewState.DASHBOARD);
+
+    try {
+      const assetsData = await assets.list();
+      setProperties(Array.isArray(assetsData.properties) ? assetsData.properties : []);
+    } catch (e) {
+      console.error('Failed to load assets', e);
+      setProperties([]);
+    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await auth.logout();
+    } catch (e) {
+      console.error('Logout failed', e);
+    }
+    setUser(null);
+    setProperties([]);
     setView(ViewState.LOGIN);
     setSidebarOpen(false);
   };
+
+  const mapApiUserToUiUser = (apiUser: any): User => ({
+    id: apiUser.ID,
+    username: apiUser.Name,
+    level: apiUser.Level,
+    cash: apiUser.Money,
+    bank: apiUser.Bank,
+    hoursPlayed: apiUser.ConnectedTime,
+    vipLevel: apiUser.DonateRank,
+    adminLevel: apiUser.AdminLevel,
+    organization: apiUser.Leader > 0 ? `Leader ${apiUser.Leader}` : (apiUser.Member > 0 ? `Member ${apiUser.Member}` : 'Civilian'),
+    avatarUrl: apiUser.avatar_image_url || 'https://i.pravatar.cc/150?img=11',
+    joinedDate: apiUser.Registered ? new Date(apiUser.Registered).toLocaleDateString() : 'Unknown',
+    warnings: apiUser.Warnings,
+    status: apiUser.PermBand ? 'Banned' : (apiUser.Jailed ? 'Jailed' : 'Active'),
+  });
 
   if (loading) {
     return (
@@ -100,13 +154,13 @@ export default function App() {
           </div>
 
           <div className="p-4 lg:p-10 max-w-7xl mx-auto pb-20">
-            {view === ViewState.DASHBOARD && (
+            {view === ViewState.DASHBOARD && user && (
               <>
                 <div className="mb-8">
-                  <h1 className="text-4xl font-display font-bold mb-2">Welcome back, {MOCK_USER.username}</h1>
+                  <h1 className="text-4xl font-display font-bold mb-2">Welcome back, {user.username}</h1>
                   <p className="text-glass-muted">Here is what's happening in Los Santos today.</p>
                 </div>
-                <Dashboard user={MOCK_USER} properties={MOCK_PROPERTIES} />
+                <Dashboard user={user} properties={properties} />
               </>
             )}
 
@@ -133,10 +187,16 @@ export default function App() {
                   <p className="text-glass-muted">Manage your real estate and vehicles.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {MOCK_PROPERTIES.map(p => (
+                 {properties.map(p => (
                      // Reusing property card logic but expanded for this view
                      <div key={p.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 overflow-hidden relative group hover:border-white/20 transition-all">
-                        <img src={p.imageUrl} className="w-full h-48 object-cover rounded-xl mb-4 opacity-80 group-hover:opacity-100 transition-opacity" alt={p.name} />
+                        <div className="w-full h-48 rounded-xl mb-4 bg-white/5 overflow-hidden flex items-center justify-center p-4">
+                          <img
+                            src={p.imageUrl}
+                            className="max-w-full max-h-full object-contain object-center opacity-90 group-hover:opacity-100 transition-opacity"
+                            alt={p.name}
+                          />
+                        </div>
                         <h3 className="text-xl font-bold">{p.name}</h3>
                         <p className="text-glass-muted mb-4">{p.location}</p>
                         <button className="w-full py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded-lg transition-colors border border-blue-500/20">View Details</button>

@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
 import { GlassCard } from './GlassCard';
-import { User as UserIcon, Lock, ArrowRight, Gamepad2 } from 'lucide-react';
+import { User as UserIcon, Lock, ArrowRight, Gamepad2, AlertCircle } from 'lucide-react';
+import { auth } from '../services/api';
 
 interface LoginProps {
-  onLogin: () => void;
+  onLogin: (user: any) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError('');
+    
+    try {
+      const data = await auth.login(username, password);
+      onLogin(data.user);
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
       setIsLoading(false);
-      onLogin();
-    }, 1500);
+    }
   };
 
   return (
@@ -34,6 +41,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <GlassCard className="p-8 backdrop-blur-2xl bg-black/40">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-lg flex items-center gap-2 text-sm">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-xs font-bold text-glass-muted uppercase tracking-wider">Username</label>
               <div className="relative">

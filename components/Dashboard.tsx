@@ -190,15 +190,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, properties }) => {
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              {properties.map(prop => (
                 <GlassCard key={prop.id} className="group p-0 overflow-hidden border-white/5 hover:border-white/20" interactive>
-                  <div className="flex min-h-[9rem]">
-                     <div className="w-[140px] relative shrink-0">
-                        <img 
-                          src={prop.imageUrl} 
-                          alt={prop.name}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
-                     </div>
+                  <div className="flex h-[9.5rem]">
+                     <div className="w-[190px] sm:w-[210px] h-full shrink-0 overflow-hidden bg-white/5 flex items-center justify-center p-4">
+                    <img 
+                      src={prop.imageUrl} 
+                      alt={prop.name}
+                      className="max-w-full max-h-full object-contain object-center transition-transform duration-700 group-hover:scale-110"
+                    />
+                  </div>
                      <div className="flex-1 p-4 flex flex-col justify-between relative bg-gradient-to-r from-white/[0.02] to-transparent">
                         <div>
                           <div className="flex justify-between items-start mb-2">
