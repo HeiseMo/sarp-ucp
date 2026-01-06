@@ -61,8 +61,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ user: sanitizeUserRow(user) });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    // Return the actual error message for debugging purposes
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
