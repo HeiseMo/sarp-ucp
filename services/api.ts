@@ -40,3 +40,16 @@ export const assets = {
       method: 'GET',
     }),
 };
+
+export const leaderboard = {
+  get: () => apiFetch('/api/leaderboard', {
+      method: 'GET'
+  }),
+};
+
+export const affiliations = {
+  getDetails: (type: string, id: number) => 
+    apiFetch(`/api/affiliations/details?type=${type}&id=${id}`, {
+      method: 'GET'
+    })
+};

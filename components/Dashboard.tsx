@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, Property } from '../types';
 import { GlassCard } from './GlassCard';
-import { Wallet, Clock, Trophy, Shield, Home, Building2, Lock, Unlock, AlertCircle, Calendar, User as UserIcon, Activity, AlertTriangle, Key } from 'lucide-react';
+import { Wallet, Clock, Trophy, Shield, Home, Building2, Lock, Unlock, AlertCircle, Calendar, User as UserIcon, Activity, AlertTriangle, Key, Star, FileText, Crosshair, Backpack } from 'lucide-react';
 
 interface DashboardProps {
   user: User;
@@ -9,6 +9,8 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, properties }) => {
+  const [expandedAsset, setExpandedAsset] = useState<number | null>(null);
+
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
   };
@@ -20,6 +22,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, properties }) => {
       case 'Impounded': return <AlertCircle size={14} className="text-amber-400" />;
       default: return <div className="w-2 h-2 rounded-full bg-gray-500"></div>;
     }
+  };
+
+  const toggleAsset = (id: number) => {
+    setExpandedAsset(expandedAsset === id ? null : id);
   };
 
   return (
@@ -85,7 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, properties }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Character Profile & Quick Stats */}
         <div className="lg:col-span-4 space-y-6">
-          <GlassCard className="p-0 overflow-hidden h-full flex flex-col">
+          <GlassCard className="p-0 overflow-hidden h-auto flex flex-col">
              {/* Decorative Header */}
              <div className="h-28 bg-gradient-to-br from-blue-900/40 via-purple-900/40 to-[#0f0f13] relative">
                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-30"></div>
@@ -171,6 +177,97 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, properties }) => {
                 </button>
              </div>
           </GlassCard>
+
+          {/* Character Details Panels */}
+          {user.character && (
+              <>
+                {/* Badge Card */}
+                {user.character.badge?.active && (
+                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-900 to-slate-900 border border-blue-500/30 p-4 shadow-lg shadow-blue-900/20">
+                         <div className="absolute right-0 top-0 w-32 h-32 bg-blue-500/10 blur-2xl rounded-full"></div>
+                         <div className="flex items-center gap-4 mb-2 relative z-10">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600 flex items-center justify-center text-black font-bold border-2 border-yellow-200 shadow-lg shadow-yellow-500/20">
+                                <Star size={24} fill="currentColor" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-white text-lg leading-tight uppercase tracking-wider">{user.character.badge.department}</h3>
+                                <p className="text-blue-200 text-xs uppercase tracking-widest font-medium">{user.character.badge.division || 'Officer'}</p>
+                            </div>
+                         </div>
+                         <div className="mt-4 pt-3 border-t border-blue-500/30 flex justify-between items-center relative z-10">
+                             {user.character.badge.number > 0 ? (
+                                <div>
+                                    <p className="text-[10px] text-blue-300 uppercase tracking-wider font-bold">Badge Number</p>
+                                    <p className="font-mono font-bold text-white text-xl tracking-wide">#{user.character.badge.number}</p>
+                                </div>
+                             ) : (
+                                <div></div> /* Spacer to keep Rank on the right if Badge Number is missing */
+                             )}
+                             
+                             {user.character.badge.rank && (
+                                 <div className="text-right">
+                                     <p className="text-[10px] text-blue-300 uppercase tracking-wider font-bold">Rank</p>
+                                     <p className="font-bold text-white text-sm">{user.character.badge.rank}</p>
+                                 </div>
+                             )}
+                         </div>
+                    </div>
+                )}
+
+                {/* Weapons */}
+                {user.character.weapons.length > 0 && (
+                    <GlassCard className="p-5">
+                        <h3 className="text-xs font-bold text-glass-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Crosshair size={14} className="text-red-400" /> Equipped Loadout
+                        </h3>
+                        <div className="space-y-3">
+                            {user.character.weapons.map(w => (
+                                <div key={w.id} className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+                                    <span className="text-sm font-medium text-white">{w.name}</span>
+                                    <div className="flex items-center gap-1.5 bg-black/30 px-2 py-0.5 rounded text-xs font-mono text-glass-muted">
+                                       <span className="text-white">{w.ammo}</span> RDS
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </GlassCard>
+                )}
+
+                {/* Inventory / Drugs */}
+                {(user.character.inventory.length > 0 || user.character.drugs.length > 0) && (
+                    <GlassCard className="p-5">
+                         <h3 className="text-xs font-bold text-glass-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Backpack size={14} className="text-emerald-400" /> Inventory & Contraband
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[...user.character.drugs, ...user.character.inventory].map(item => (
+                                <div key={item.id} className="bg-white/5 p-2.5 rounded-lg border border-white/5 flex flex-col hover:bg-white/10 transition-colors">
+                                    <span className="text-[10px] text-glass-muted uppercase tracking-wider font-bold mb-0.5">{item.name}</span>
+                                    <span className="font-mono font-bold text-white text-lg leading-none">{item.amount.toLocaleString()}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </GlassCard>
+                )}
+
+                {/* Licenses */}
+                {user.character.licenses.length > 0 && (
+                    <GlassCard className="p-5">
+                        <h3 className="text-xs font-bold text-glass-muted uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <FileText size={14} className="text-blue-400" /> Valid Licenses
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            {user.character.licenses.map(l => (
+                                <span key={l.name} className="px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-300">
+                                    {l.name}
+                                </span>
+                            ))}
+                        </div>
+                    </GlassCard>
+                )}
+              </>
+          )}
+
         </div>
 
         {/* Right Column: Assets List */}
@@ -189,48 +286,104 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, properties }) => {
            
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              {properties.map(prop => (
-                <GlassCard key={prop.id} className="group p-0 overflow-hidden border-white/5 hover:border-white/20" interactive>
-                  <div className="flex h-[9.5rem]">
-                     <div className="w-[190px] sm:w-[210px] h-full shrink-0 overflow-hidden bg-white/5 flex items-center justify-center p-4">
-                    <img 
-                      src={prop.imageUrl} 
-                      alt={prop.name}
-                      className="max-w-full max-h-full object-contain object-center transition-transform duration-700 group-hover:scale-110"
-                    />
-                  </div>
-                     <div className="flex-1 p-4 flex flex-col justify-between relative bg-gradient-to-r from-white/[0.02] to-transparent">
-                        <div>
-                          <div className="flex justify-between items-start mb-2">
-                             <div className={`
-                               text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider
-                               ${prop.type === 'House' ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' : ''}
-                               ${prop.type === 'Business' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : ''}
-                               ${prop.type === 'Vehicle' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : ''}
-                             `}>
-                               {prop.type}
-                             </div>
-                             <div className="p-1.5 rounded-full bg-white/5 border border-white/5 group-hover:border-white/10 transition-colors">
-                                {getStatusIcon(prop.status)}
-                             </div>
-                          </div>
-                          <h4 className="font-bold text-white text-lg truncate pr-2 group-hover:text-blue-400 transition-colors">{prop.name}</h4>
-                          <p className="text-xs text-glass-muted flex items-center gap-1.5 mt-0.5 truncate">
-                             {prop.type === 'Vehicle' ? <Key size={12}/> : <Home size={12} />} 
-                             {prop.type === 'Vehicle' ? prop.details : prop.location}
-                          </p>
+                <GlassCard 
+                    key={prop.id} 
+                    className={`group p-0 overflow-hidden border-white/5 hover:border-white/20 transition-all ${expandedAsset === prop.id ? 'ring-1 ring-blue-500/40 border-blue-500/30' : ''}`} 
+                    interactive
+                >
+                  <div onClick={() => toggleAsset(prop.id)} className="cursor-pointer">
+                    <div className="flex h-[9.5rem]">
+                        <div className="w-[190px] sm:w-[210px] h-full shrink-0 overflow-hidden bg-white/5 flex items-center justify-center p-4">
+                            <img 
+                            src={prop.imageUrl} 
+                            alt={prop.name}
+                            className={`max-w-full max-h-full object-contain object-center transition-transform duration-700 ${expandedAsset === prop.id ? 'scale-105' : 'group-hover:scale-110'}`}
+                            />
                         </div>
+                        <div className="flex-1 p-4 flex flex-col justify-between relative bg-gradient-to-r from-white/[0.02] to-transparent">
+                            <div>
+                            <div className="flex justify-between items-start mb-2">
+                                <div className={`
+                                text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider
+                                ${prop.type === 'House' ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' : ''}
+                                ${prop.type === 'Business' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : ''}
+                                ${prop.type === 'Vehicle' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : ''}
+                                `}>
+                                {prop.type}
+                                </div>
+                                <div className="p-1.5 rounded-full bg-white/5 border border-white/5 group-hover:border-white/10 transition-colors">
+                                    {getStatusIcon(prop.status)}
+                                </div>
+                            </div>
+                            <h4 className="font-bold text-white text-lg truncate pr-2 group-hover:text-blue-400 transition-colors">{prop.name}</h4>
+                            <p className="text-xs text-glass-muted flex items-center gap-1.5 mt-0.5 truncate">
+                                {prop.type === 'Vehicle' ? <Key size={12}/> : <Home size={12} />} 
+                                {prop.type === 'Vehicle' ? prop.details : prop.location}
+                            </p>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                            <div>
+                                <p className="text-[10px] text-glass-muted uppercase tracking-wider font-bold">Value</p>
+                                <p className="text-sm font-mono font-bold text-emerald-400">${prop.value.toLocaleString()}</p>
+                            </div>
+                            <span className={`text-xs px-3 py-1.5 rounded-lg transition-all ${expandedAsset === prop.id ? 'bg-blue-500 text-white' : 'bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white'}`}>
+                                {expandedAsset === prop.id ? 'View Storage' : 'Manage'}
+                            </span>
+                            </div>
+                        </div>
+                    </div>
+                  </div>
+                  
+                  {/* Expanded Storage Section */}
+                  {expandedAsset === prop.id && prop.storage && (
+                    <div className="p-5 bg-black/40 border-t border-white/10 border-dashed animate-fade-in relative z-20">
+                        <h4 className="text-xs font-bold text-glass-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+                           <Backpack size={14} /> Property Storage / Trunk
+                        </h4>
                         
-                        <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                           <div>
-                             <p className="text-[10px] text-glass-muted uppercase tracking-wider font-bold">Value</p>
-                             <p className="text-sm font-mono font-bold text-emerald-400">${prop.value.toLocaleString()}</p>
-                           </div>
-                           <button className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white px-3 py-1.5 rounded-lg transition-all">
-                             Manage
-                           </button>
-                        </div>
-                     </div>
-                  </div>
+                        {(prop.storage.weapons.length === 0 && prop.storage.items.length === 0 && (!prop.storage.money || prop.storage.money === 0)) ? (
+                            <div className="text-sm text-glass-muted italic bg-white/5 p-3 rounded-lg text-center">
+                                Storage is empty as a void.
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                               {/* Money */}
+                               {prop.storage.money && prop.storage.money > 0 && (
+                                   <div className="flex justify-between items-center bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20">
+                                       <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider">Cash Stashed</span>
+                                       <span className="text-emerald-300 font-mono font-bold text-lg">${prop.storage.money.toLocaleString()}</span>
+                                   </div>
+                               )}
+                               
+                               {/* Weapons */}
+                               {prop.storage.weapons.length > 0 && (
+                                   <div>
+                                       <div className="grid grid-cols-2 gap-2">
+                                           {prop.storage.weapons.map((w, i) => (
+                                               <div key={i} className="text-xs bg-white/5 p-2 rounded border border-white/5 flex justify-between items-center">
+                                                   <span className="font-medium text-white">{w.name}</span>
+                                                   <span className="text-glass-muted font-mono">{w.ammo} rds</span>
+                                               </div>
+                                           ))}
+                                       </div>
+                                   </div>
+                               )}
+
+                               {/* Items */}
+                               {prop.storage.items.length > 0 && (
+                                   <div className="flex flex-wrap gap-2">
+                                       {prop.storage.items.map((item, i) => (
+                                           <span key={i} className="px-2.5 py-1.5 bg-white/5 rounded border border-white/10 text-xs font-bold text-glass-muted flex items-center gap-1.5">
+                                               {item.name} <span className="text-white font-mono">{item.amount}</span>
+                                           </span>
+                                       ))}
+                                   </div>
+                               )}
+                            </div>
+                        )}
+                    </div>
+                )}
                 </GlassCard>
              ))}
              

@@ -13,7 +13,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, onLogout, isOpen, toggleSidebar }) => {
   const navItems = [
     { view: ViewState.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-    { view: ViewState.FACTION, label: 'Faction', icon: Users },
+    { view: ViewState.AFFILIATIONS, label: 'Affiliations', icon: Users },
     { view: ViewState.COMMUNITY, label: 'Community', icon: FileText },
     { view: ViewState.LEADERBOARD, label: 'Leaderboard', icon: Trophy },
     { view: ViewState.PROPERTIES, label: 'Properties', icon: CreditCard },

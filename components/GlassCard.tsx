@@ -1,14 +1,15 @@
 import React from 'react';
 
-interface GlassCardProps {
+interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   interactive?: boolean;
 }
 
-export const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', interactive = false }) => {
+export const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', interactive = false, ...props }) => {
   return (
     <div
+      {...props}
       className={`
         relative overflow-hidden
         bg-white/5 backdrop-blur-xl

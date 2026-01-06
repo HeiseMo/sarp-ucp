@@ -1,5 +1,36 @@
 // --- UI TYPES (Used by React Components) ---
 
+export interface CharacterItem {
+  id: string;
+  name: string;
+  amount: number;
+}
+
+export interface CharacterWeapon {
+  id: number;
+  name: string;
+  ammo: number;
+}
+
+export interface CharacterLicense {
+  name: string;
+  active: boolean;
+}
+
+export interface CharacterProfile {
+  licenses: CharacterLicense[];
+  inventory: CharacterItem[];
+  weapons: CharacterWeapon[];
+  drugs: CharacterItem[];
+  badge?: {
+    active: boolean;
+    number: number;
+    department?: string;
+    rank?: string;
+    division?: string;
+  };
+}
+
 export interface User {
   id: number;
   username: string;
@@ -15,6 +46,25 @@ export interface User {
   joinedDate: string;
   warnings: number;
   status: 'Active' | 'Banned' | 'Jailed';
+  character: CharacterProfile;
+  affiliations: Affiliation[];
+}
+
+export interface Affiliation {
+  id: number;
+  name: string;
+  type: 'Faction' | 'Family' | 'Group' | 'Agency';
+  rank: string;
+  rankId: number;
+  division?: string; // e.g. "Traffic Division"
+  isLeader: boolean;
+  wage?: number; // Optional context
+}
+
+export interface PropertyStorage {
+  money?: number;
+  items: CharacterItem[];
+  weapons: CharacterWeapon[];
 }
 
 export interface Property {
@@ -26,6 +76,7 @@ export interface Property {
   imageUrl: string;
   status: 'Active' | 'Locked' | 'Impounded' | 'For Sale';
   details?: string; // e.g., Plate for cars, Interior ID for houses
+  storage?: PropertyStorage;
 }
 
 export interface LeaderboardEntry {
@@ -82,7 +133,7 @@ export enum ViewState {
   DASHBOARD,
   LEADERBOARD,
   PROPERTIES,
-  FACTION,
+  AFFILIATIONS,
   COMMUNITY,
   SETTINGS,
   ADMIN

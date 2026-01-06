@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { ViewState, User, Property } from './types';
+import { ViewState, User, Property, LeaderboardEntry } from './types';
 import { Login } from './components/Login';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { Leaderboard } from './components/Leaderboard';
-import { FactionPanel } from './components/FactionPanel';
+import { AffiliationsPanel } from './components/AffiliationsPanel';
 import { CommunityPanel } from './components/CommunityPanel';
 import { AdminPanel } from './components/AdminPanel';
-import { MOCK_LEADERBOARD, MOCK_FACTION, MOCK_TICKETS, MOCK_SERVER_LOGS, MOCK_ALL_PLAYERS } from './services/mockData';
-import { auth, assets } from './services/api';
+import { MOCK_FACTION, MOCK_TICKETS, MOCK_SERVER_LOGS, MOCK_ALL_PLAYERS } from './services/mockData';
+import { auth, assets, leaderboard } from './services/api';
 import { Menu } from 'lucide-react';
 
 export default function App() {
@@ -17,6 +17,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
 
   // Check auth on load
   useEffect(() => {
@@ -44,6 +46,28 @@ export default function App() {
     };
     checkAuth();
   }, []);
+
+  // Fetch leaderboard when view changes
+  useEffect(() => {
+    if (view === ViewState.LEADERBOARD) {
+        setLoadingLeaderboard(true);
+        const fetchLeaderboard = async () => {
+            try {
+                const data = await leaderboard.get();
+                if (data.leaderboard && Array.isArray(data.leaderboard)) {
+                    setLeaderboardData(data.leaderboard);
+                } else {
+                    console.warn("Leaderboard API returned unexpected structure", data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch leaderboard", error);
+            } finally {
+                setLoadingLeaderboard(false);
+            }
+        };
+        fetchLeaderboard();
+    }
+  }, [view]);
 
   const handleLogin = async (apiUser: any) => {
     setUser(mapApiUserToUiUser(apiUser));
@@ -84,6 +108,8 @@ export default function App() {
     joinedDate: apiUser.Registered ? new Date(apiUser.Registered).toLocaleDateString() : 'Unknown',
     warnings: apiUser.Warnings,
     status: apiUser.PermBand ? 'Banned' : (apiUser.Jailed ? 'Jailed' : 'Active'),
+    character: apiUser.character,
+    affiliations: apiUser.affiliations || []
   });
 
   if (loading) {
@@ -164,8 +190,8 @@ export default function App() {
               </>
             )}
 
-            {view === ViewState.FACTION && (
-              <FactionPanel faction={MOCK_FACTION} />
+            {view === ViewState.AFFILIATIONS && user && (
+              <AffiliationsPanel affiliations={user.affiliations || []} />
             )}
 
             {view === ViewState.COMMUNITY && (
@@ -177,7 +203,15 @@ export default function App() {
             )}
 
             {view === ViewState.LEADERBOARD && (
-              <Leaderboard data={MOCK_LEADERBOARD} title="Richest Players" />
+              <>
+                 {loadingLeaderboard ? (
+                    <div className="flex justify-center p-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                    </div>
+                 ) : (
+                    <Leaderboard data={leaderboardData} title="Richest Players" />
+                 )}
+              </>
             )}
 
             {view === ViewState.PROPERTIES && (

@@ -2,6 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import pool from './lib/db.ts';
 import { getAuthToken, verifyToken } from './lib/auth.ts';
 import { VEHICLE_MODELS } from './lib/vehicleModels.ts';
+import { getWeaponName } from './lib/character.ts';
 
 function toNumber(value: unknown): number {
   const n = Number(value);
@@ -21,6 +22,49 @@ function vehicleImageUrl(modelId: number): string {
   // open.mp hosts a vehicle thumbnail for each GTA:SA model id.
   // Example: https://assets.open.mp/assets/images/vehiclePictures/Vehicle_411.jpg
   return `https://assets.open.mp/assets/images/vehiclePictures/Vehicle_${modelId}.jpg`;
+}
+
+function parseStorage(row: any, type: 'House' | 'Vehicle'): { money: number, items: any[], weapons: any[] } {
+  const items: any[] = [];
+  const weapons: any[] = [];
+  const money = type === 'House' ? toNumber(row.Cash) : 0;
+
+  const add = (id: string, name: string, val: any) => {
+    const amt = toNumber(val);
+    if (amt > 0) items.push({ id, name, amount: amt });
+  };
+
+  // Common drugs/mats
+  add('pot', 'Pot', row.Pot);
+  add('crack', 'Crack', row.Crack);
+  add('cannabis', 'Cannabis', row.Cannabis);
+  add('cocaine', 'Cocaine', row.Cocaine);
+  add('meth', 'Meth', row.Meth);
+  add('xanax', 'Xanax', row.Xanax);
+  add('materials', 'Materials', row.Materials);
+  
+  if (type === 'Vehicle') {
+    add('armor', 'Body Armor', row.Armor);
+  }
+
+  // Weapons
+  // Houses often have Gun1..GunX and Ammo1..AmmoX
+  // Vehicles: Gun1, Gun2 (Schema check said Gun1, Gun2 for vehicles, Gun1..7 for houses)
+  const maxGuns = type === 'House' ? 10 : 3; 
+
+  for (let i = 1; i <= maxGuns; i++) {
+    const gunId = toNumber(row[`Gun${i}`] ?? row[`gun${i}`]);
+    if (gunId > 0) {
+      // Try to find ammo. 
+      // House: Ammo1..Ammo4?
+      // Vehicles: usually embedded or separate col.
+      // We'll try generic Ammo field names.
+      const ammo = toNumber(row[`Ammo${i}`] ?? row[`ammo${i}`] ?? row[`Gun${i}Ammo`]);
+      weapons.push({ id: gunId, name: getWeaponName(gunId), ammo });
+    }
+  }
+
+  return { money, items, weapons };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -95,6 +139,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         imageUrl: type === 'House' ? 'https://picsum.photos/id/10/400/300' : 'https://picsum.photos/id/225/400/300',
         status: locked ? 'Locked' : 'Active',
         details: type === 'House' ? 'Property' : 'Business',
+        storage: parseStorage(h, 'House')
       });
     }
 
@@ -113,6 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         imageUrl: vehicleImageUrl(model),
         status: locked ? 'Locked' : 'Active',
         details: plate ? `Plate: ${plate}` : undefined,
+        storage: parseStorage(v, 'Vehicle')
       });
     }
 

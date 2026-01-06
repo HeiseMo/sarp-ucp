@@ -1,6 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import pool from '../lib/db.ts';
 import { verifyToken, getAuthToken } from '../lib/auth.ts';
+import { mapCharacterProfile } from '../lib/character.ts';
+import { mapAffiliations } from '../lib/affiliations.ts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -42,9 +44,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    const user = rows[0];
+    const rawUser = rows[0];
+    const user = {
+      ...sanitizeUserRow(rawUser),
+      character: mapCharacterProfile(rawUser),
+      affiliations: mapAffiliations(rawUser)
+    };
 
-    return res.status(200).json({ user: sanitizeUserRow(user) });
+    return res.status(200).json({ user });
 
   } catch (error) {
     console.error('Me error:', error);
