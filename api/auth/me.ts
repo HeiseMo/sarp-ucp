@@ -1,8 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import pool from '../lib/db.ts';
-import { verifyToken, getAuthToken } from '../lib/auth.ts';
-import { mapCharacterProfile } from '../lib/character.ts';
-import { mapAffiliations } from '../lib/affiliations.ts';
+import pool from '../lib/db';
+import { verifyToken, getAuthToken } from '../lib/auth';
+import { mapCharacterProfile } from '../lib/character';
+import { mapAffiliations } from '../lib/affiliations';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {

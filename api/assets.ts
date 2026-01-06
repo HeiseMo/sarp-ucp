@@ -1,8 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import pool from './lib/db.ts';
-import { getAuthToken, verifyToken } from './lib/auth.ts';
-import { VEHICLE_MODELS } from './lib/vehicleModels.ts';
-import { getWeaponName } from './lib/character.ts';
+import pool from './lib/db';
+import { getAuthToken, verifyToken } from './lib/auth';
+import { VEHICLE_MODELS } from './lib/vehicleModels';
+import { getWeaponName } from './lib/character';
 
 function toNumber(value: unknown): number {
   const n = Number(value);
